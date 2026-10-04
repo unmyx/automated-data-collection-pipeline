@@ -1,6 +1,6 @@
 # ADCP - Automated Data Collection Pipeline
 
-[![CI](https://github.com/unmyx/automated-data-collection-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/depduris/adcp/actions/workflows/ci.yml)
+[![CI](https://github.com/unmyx/automated-data-collection-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/unmyx/automated-data-collection-pipeline/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![PostgreSQL 17](https://img.shields.io/badge/postgresql-17-336791.svg)](https://www.postgresql.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
