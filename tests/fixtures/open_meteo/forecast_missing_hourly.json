@@ -1,0 +1,25 @@
+{
+  "latitude": 44.817726,
+  "longitude": 20.435654,
+  "generationtime_ms": 14.921426773071289,
+  "utc_offset_seconds": 0,
+  "timezone": "GMT",
+  "timezone_abbreviation": "GMT",
+  "elevation": 75.0,
+  "hourly_units": {
+    "time": "iso8601",
+    "temperature_2m": "°C",
+    "relative_humidity_2m": "%",
+    "dew_point_2m": "°C",
+    "apparent_temperature": "°C",
+    "precipitation": "mm",
+    "rain": "mm",
+    "snowfall": "cm",
+    "weather_code": "wmo code",
+    "cloud_cover": "%",
+    "pressure_msl": "hPa",
+    "wind_speed_10m": "km/h",
+    "wind_direction_10m": "°",
+    "wind_gusts_10m": "km/h"
+  }
+}

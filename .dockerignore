@@ -1,0 +1,25 @@
+.git
+.github
+.gitignore
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+dist
+build
+.env
+.env.*
+!.env.example
+logs
+data
+# The image only needs the package metadata and sources. Keep README.md and
+# LICENSE - the build backend reads them for package metadata.
+docs
+tests

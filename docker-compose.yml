@@ -1,0 +1,96 @@
+# Local development stack for ADCP.
+#
+#   docker compose up -d postgres          # start PostgreSQL only
+#   docker compose --profile tools up -d   # add Adminer on http://localhost:8080
+#   docker compose --profile app up --build  # build and run the ADCP image
+#   docker compose config -q               # validate this file
+#
+# The container always listens on 5432; only the *host* port is configurable.
+# It defaults to 55432 because developer machines routinely already have
+# PostgreSQL containers on 5432 and 5433.
+#
+# Connection string for the default credentials:
+#   postgresql+psycopg://adcp:adcp_local_dev@localhost:55432/adcp
+
+name: adcp
+
+x-postgres-environment: &postgres-environment
+  POSTGRES_USER: ${POSTGRES_USER:-adcp}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adcp_local_dev}
+  POSTGRES_DB: ${POSTGRES_DB:-adcp}
+
+x-postgres-healthcheck: &postgres-healthcheck
+  test:
+    [
+      "CMD-SHELL",
+      "pg_isready -U ${POSTGRES_USER:-adcp} -d ${POSTGRES_DB:-adcp} -h 127.0.0.1",
+    ]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 15s
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: adcp-postgres
+    restart: unless-stopped
+    environment: *postgres-environment
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    command:
+      - postgres
+      # Store everything in UTC so timestamps behave the same on every machine.
+      - -c
+      - timezone=UTC
+      # Surface slow statements in the container log for local debugging.
+      - -c
+      - log_min_duration_statement=1000
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck: *postgres-healthcheck
+
+  adminer:
+    image: adminer:4
+    container_name: adcp-adminer
+    restart: unless-stopped
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: dracula
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: adcp:local
+    container_name: adcp-app
+    restart: unless-stopped
+    profiles: ["app"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # The container talks to the Compose service name, not to localhost.
+    environment:
+      ADCP_ENV: ${ADCP_ENV:-local}
+      ADCP_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-adcp}:${POSTGRES_PASSWORD:-adcp_local_dev}@postgres:5432/${POSTGRES_DB:-adcp}
+      ADCP_LOG_FORMAT: ${ADCP_LOG_FORMAT:-json}
+      ADCP_SCHEDULER_ENABLED: ${ADCP_SCHEDULER_ENABLED:-true}
+    env_file:
+      - path: .env
+        required: false
+    # The app profile runs the scheduler; `adcp collect` stays the one-shot
+    # contract that the scheduler (and cron, and CI) call.
+    command: ["adcp", "schedule"]
+    # Give an in-flight collection time to finish on SIGTERM. Watermarks only move
+    # on commit, so being killed mid-run is safe either way.
+    stop_grace_period: 90s
+
+volumes:
+  postgres-data:
+    name: adcp-postgres-data

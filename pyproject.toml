@@ -1,0 +1,175 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "adcp"
+version = "0.1.0"
+description = "Automated Data Collection Pipeline - scheduled, idempotent ingestion of hourly weather data from Open-Meteo into PostgreSQL."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Daniel", email = "depduris@gmail.com" }]
+keywords = ["data-engineering", "etl", "ingestion", "postgresql", "open-meteo", "weather"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Database",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+  "Typing :: Typed",
+]
+dependencies = [
+  "alembic>=1.13,<2.0",
+  "apscheduler>=3.10,<4.0",
+  "httpx>=0.27,<1.0",
+  "pydantic>=2.7,<3.0",
+  "pydantic-settings>=2.3,<3.0",
+  "psycopg[binary]>=3.2,<4.0",
+  "sqlalchemy>=2.0.30,<3.0",
+  "structlog>=24.1,<27.0",
+  "tenacity>=8.4,<10.0",
+  "typer>=0.12,<1.0",
+  # Windows has no system tz database, so zoneinfo needs the bundled data.
+  "tzdata>=2024.1",
+]
+
+[project.scripts]
+adcp = "adcp.cli:entrypoint"
+
+[project.urls]
+Homepage = "https://github.com/unmyx/automated-data-collection-pipeline"
+Issues = "https://github.com/unmyx/automated-data-collection-pipeline/issues"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.11",
+  "pyyaml>=6.0",
+  "pytest>=8.2",
+  "pytest-cov>=5.0",
+  "respx>=0.21",
+  "ruff>=0.6",
+  "testcontainers[postgres]>=4.8,<5.0",
+  "types-PyYAML>=6.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/adcp"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/docs", "README.md", "LICENSE", "pyproject.toml", ".env.example"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py", "pyproject.toml"]
+extend-exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = [
+  "A",    # builtin shadowing
+  "ARG",  # unused arguments
+  "B",    # bugbear
+  "C4",   # comprehensions
+  "DTZ",  # naive datetimes
+  "E",    # pycodestyle errors
+  "EM",   # exception messages
+  "F",    # pyflakes
+  "G",    # logging format
+  "I",    # isort
+  "LOG",  # logging usage
+  "N",    # pep8 naming
+  "PGH",  # pygrep-hooks
+  "PIE",  # pie
+  "PL",   # pylint
+  "PT",   # pytest style
+  "Q",    # quotes
+  "RET",  # return statements
+  "RSE",  # raise
+  "RUF",  # ruff-specific
+  "SIM",  # simplify
+  "T10",  # debugger
+  "T20",  # print
+  "TID",  # tidy imports
+  "TRY",  # tryceratops
+  "UP",   # pyupgrade
+  "W",    # pycodestyle warnings
+]
+ignore = [
+  "TRY003",   # long messages outside exception class
+  "EM101",    # raw string in exception
+  "EM102",    # f-string in exception
+  "PLR2004",  # magic value comparison
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004", "ARG001"]
+"scripts/**/*.py" = ["T201"]   # dev tools report progress on the console
+# capture_samples.py adds the repository root to sys.path before importing, so
+# the imports deliberately follow module-level statements.
+"scripts/capture_samples.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["adcp"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+disallow_any_generics = true
+no_implicit_reexport = true
+plugins = ["pydantic.mypy"]
+files = ["src/adcp", "tests", "scripts"]
+exclude = ["\\.venv"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+# APScheduler ships no py.typed marker; the scheduler module is small, wrapper
+# only, and covered by tests.
+module = ["apscheduler.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+  "--import-mode=importlib",
+]
+filterwarnings = ["error"]
+markers = [
+  "unit: fast, isolated tests with no external services",
+  "integration: tests that need PostgreSQL or network access",
+  "live: opt-in tests that call the real Open-Meteo API (ADCP_LIVE_API_TESTS=true)",
+  "smoke: minimal wiring checks for the project scaffold",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/adcp"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 85
+
+[tool.coverage.paths]
+source = ["src", ".venv/**/site-packages"]
